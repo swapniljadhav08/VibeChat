@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
+import { RefreshCw } from 'lucide-react';
 import Header from '../components/layout/Header';
 import BottomNav from '../components/layout/BottomNav';
 import CameraView from '../components/camera/CameraView';
@@ -36,13 +37,24 @@ const Home = () => {
     }, [userData]);
 
     const handleCapturePhoto = async () => {
-        // Automatically hide the picker so it doesn't get exported in the picture
         setShowFilters(false);
         if (cameraRef.current) {
             const photoDataUrl = await cameraRef.current.capturePhoto();
             if (photoDataUrl) {
                 setCapturedPhoto(photoDataUrl);
             }
+        }
+    };
+
+    const handleOpenGallery = () => {
+        if (cameraRef.current) {
+            cameraRef.current.openGallery();
+        }
+    };
+
+    const handleToggleCamera = () => {
+        if (cameraRef.current) {
+            cameraRef.current.toggleCamera();
         }
     };
 
@@ -63,7 +75,6 @@ const Home = () => {
 
         setIsUploading(true);
         try {
-            // 1. Upload the snap to Cloudinary
             const uploadRes = await axios.post(`${API_BASE_URL}/api/upload/snap`,
                 { imageBase64: capturedPhoto },
                 { headers: { Authorization: `Bearer ${authToken}` } }
@@ -71,11 +82,10 @@ const Home = () => {
 
             const imageUrl = uploadRes.data.url;
 
-            // 2. Send the snap to all selected friends!
             await axios.post(`${API_BASE_URL}/api/chat/send-snap`, {
                 participantIds: selectedFriendIds,
                 imageUrl: imageUrl,
-                expiresIn: 10 // Snapchat style ephemeral
+                expiresIn: 10
             }, { headers: { Authorization: `Bearer ${authToken}` } });
 
             toast.success(`Snap sent to ${selectedFriendIds.length} friend${selectedFriendIds.length > 1 ? 's' : ''}!`);
@@ -95,7 +105,7 @@ const Home = () => {
 
     const handleSelectFilter = (filterId) => {
         setActiveFilter(filterId);
-        if (cameraRef.current) {
+        if (cameraRef.current && cameraRef.current.toggleFilter) {
             cameraRef.current.toggleFilter(filterId);
         }
     };
@@ -133,12 +143,14 @@ const Home = () => {
             ) : (
                 <>
                     <div className="z-10 w-full h-full">
-                        <CameraView ref={cameraRef} />
+                        <CameraView ref={cameraRef} onPhotoSelect={setCapturedPhoto} />
                     </div>
-                    <Header userData={userData} logout={logout} />
+                    
+                    <Header userData={userData} logout={logout} onToggleCamera={handleToggleCamera} />
 
                     <BottomNav
                         onCapture={handleCapturePhoto}
+                        onOpenGallery={handleOpenGallery}
                         onToggleFilter={handleToggleFilterPicker}
                         showFilters={showFilters}
                         currentFilter={activeFilter}

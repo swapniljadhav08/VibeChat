@@ -63,16 +63,30 @@ const uploadRoutes = require('./routes/upload');
 const chatRoutes = require('./routes/chat');
 const friendRoutes = require('./routes/friend');
 const mapRoutes = require('./routes/map');
+const notificationRoutes = require('./routes/notification');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/friends', friendRoutes);
 app.use('/api/map', mapRoutes);
+app.use('/api/notifications', notificationRoutes);
 
-// Basic health route
-app.get('/', (req, res) => {
-    res.send('VibeChat API is running');
+const path = require('path');
+
+// ... [Keep existing routes]
+
+// Basic health route (Keep API test route)
+app.get('/api/test', (req, res) => {
+    res.json({ message: "VibeChat API is working 🚀" });
+});
+
+// Serve frontend static files
+app.use(express.static(path.join(__dirname, '../client/dist')));
+
+// Catch-all route to serve the React app for any unhandled routes
+app.use((req, res) => {
+    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
 });
 
 // Start listening

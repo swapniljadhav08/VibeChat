@@ -1,9 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, UserPlus, Camera, Zap, MoreHorizontal, Settings } from 'lucide-react';
+import { Search, UserPlus, RefreshCw, Zap, MoreHorizontal, Settings, Bell } from 'lucide-react';
+import { useNotifications } from '../../context/NotificationContext';
+import NotificationDropdown from './NotificationDropdown';
 
-const Header = ({ userData }) => {
+const Header = ({ userData, onToggleCamera }) => {
     const navigate = useNavigate();
+    const { unreadCount } = useNotifications();
+    const [showNotifications, setShowNotifications] = useState(false);
+
     return (
         <div className="absolute top-0 left-0 right-0 p-4 pt-6 flex justify-between items-start z-10 w-full pointer-events-none">
             {/* Left Side: Profile, Search, Add Friend */}
@@ -29,12 +34,18 @@ const Header = ({ userData }) => {
             {/* Right Side: Header Tools */}
             <div className="flex flex-col space-y-2 pointer-events-auto">
                 <div className="flex flex-col bg-surface-900/60 backdrop-blur-xl rounded-xl border border-surface-700/50 shadow-soft overflow-hidden text-surface-400">
-                    <button className="p-2.5 hover:text-white hover:bg-surface-800/80 transition-all cursor-pointer">
-                        <Camera size={20} strokeWidth={2} />
+                    <button onClick={onToggleCamera} className="p-2.5 hover:text-white hover:bg-surface-800/80 transition-all cursor-pointer tooltip tooltip-left" data-tip="Switch Camera">
+                        <RefreshCw size={20} className={onToggleCamera ? "text-white" : ""} strokeWidth={2} />
                     </button>
                     <div className="h-px bg-surface-700/50 mx-2"></div>
-                    <button className="p-2.5 hover:text-white hover:bg-surface-800/80 transition-all cursor-pointer">
-                        <Zap size={20} strokeWidth={2} />
+                    <button 
+                        onClick={() => setShowNotifications(!showNotifications)} 
+                        className="p-2.5 hover:text-white hover:bg-surface-800/80 transition-all cursor-pointer relative"
+                    >
+                        <Bell size={20} strokeWidth={2} />
+                        {unreadCount > 0 && (
+                            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
+                        )}
                     </button>
                     <div className="h-px bg-surface-700/50 mx-2"></div>
                     <button className="p-2.5 hover:text-white hover:bg-surface-800/80 transition-all cursor-pointer">
@@ -42,6 +53,10 @@ const Header = ({ userData }) => {
                     </button>
                 </div>
             </div>
+
+            {showNotifications && (
+                <NotificationDropdown onClose={() => setShowNotifications(false)} />
+            )}
         </div>
     );
 };

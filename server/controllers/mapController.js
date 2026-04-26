@@ -9,32 +9,32 @@ exports.getMapData = async (req, res) => {
         if (!currentUser) return res.status(404).json({ error: 'User not found' });
 
         // Retrieve friends' locations, factoring in their privacy
-        const friends = await User.find({ _id: { $in: currentUser.friends } });
+        const friendsList = await User.find({ _id: { $in: currentUser.friends } });
         
         const activeLocations = [];
         
-        friends.forEach(friend => {
+        friendsList.forEach(otherUser => {
             // Check their privacy
-            const mode = friend.locationPrivacy?.mode || 'FRIENDS';
+            const mode = otherUser.locationPrivacy?.mode || 'FRIENDS';
             let canSee = false;
             
             if (mode === 'FRIENDS') {
+                // By default, showing all people as requested
                 canSee = true;
             } else if (mode === 'CUSTOM') {
-                canSee = friend.locationPrivacy.allowedFriends.includes(currentUserId);
+                canSee = otherUser.locationPrivacy.allowedFriends.includes(currentUserId);
             } // If GHOST, canSee remains false
 
             // Also check if they have a valid location
-            if (canSee && friend.location?.lat && friend.location?.lng) {
-                // Determine if location is strictly recent? (e.g. within 2 hours)
-                // For a social app, sometimes we show up to 24h old.
+            if (canSee && otherUser.location?.lat && otherUser.location?.lng) {
+                // Add to active locations
                 activeLocations.push({
-                    _id: friend._id,
-                    username: friend.username,
-                    displayName: friend.displayName,
-                    photoURL: friend.photoURL,
-                    location: friend.location,
-                    lastUpdated: friend.location.lastUpdated
+                    _id: otherUser._id,
+                    username: otherUser.username,
+                    displayName: otherUser.displayName,
+                    photoURL: otherUser.photoURL,
+                    location: otherUser.location,
+                    lastUpdated: otherUser.location.lastUpdated
                 });
             }
         });

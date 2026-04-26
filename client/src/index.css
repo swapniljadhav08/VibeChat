@@ -1,6 +1,26 @@
 @import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
+@theme {
+  --color-base-dark: #0F0F0F;
+  --color-neon-purple: #8B5CF6;
+  --color-neon-blue: #3B82F6;
+  --color-neon-cyan: #06B6D4;
+}
+
+@utility glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@utility text-gradient {
+  background: linear-gradient(to right, var(--color-neon-purple), var(--color-neon-blue));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
 html,
 body {
   margin: 0;
@@ -8,8 +28,8 @@ body {
   height: 100%;
   width: 100%;
   overflow: hidden;
-  background-color: #020617; /* surface-950 */
-  color: #f8fafc; /* surface-50 */
+  background-color: #0F0F0F;
+  color: #f8fafc;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

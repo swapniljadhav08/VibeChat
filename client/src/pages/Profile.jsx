@@ -4,7 +4,8 @@ import axios from 'axios';
 import { updateProfile as updateFirebaseAuthProfile } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import { useAuth } from '../context/AuthContext';
-import { ChevronLeft, Settings, Share, Upload, Users, MapPin, Eye, BookOpen, Star, UserPlus, Camera, Dices } from 'lucide-react';
+import { ChevronLeft, Settings, Share, Upload, Users, MapPin, Eye, BookOpen, Star, UserPlus, Camera, Dices, Sparkles, LogOut } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
@@ -40,28 +41,21 @@ const Profile = () => {
             reader.readAsDataURL(file);
             reader.onloadend = async () => {
                 const base64Image = reader.result;
-
-                // 1. Upload to Cloudinary
                 const uploadRes = await axios.post(`${API_BASE_URL}/api/upload/snap`, {
                     imageBase64: base64Image
                 }, { headers: { Authorization: `Bearer ${authToken}` } });
 
                 const newPhotoUrl = uploadRes.data.url;
 
-                // 2. Update Firebase Auth Profile
                 if (auth.currentUser) {
                     await updateFirebaseAuthProfile(auth.currentUser, { photoURL: newPhotoUrl });
                 }
 
-                // 3. Update Custom DB Profile
                 const profileRes = await axios.put(`${API_BASE_URL}/api/auth/profile`, {
                     photoURL: newPhotoUrl
                 }, { headers: { Authorization: `Bearer ${authToken}` } });
 
-                // 4. Update Global State dynamically without refreshing
                 setUserData(profileRes.data.user);
-
-                // Done
                 setUploading(false);
             };
         } catch (error) {
@@ -73,29 +67,25 @@ const Profile = () => {
     const handleOpenAvatarGenerator = () => {
         const options = Array.from({ length: 8 }).map(() => {
             const seed = Math.random().toString(36).substring(7);
-            return `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffdfbf,ffd5dc`;
+            return `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}&backgroundColor=0F0F14,16161D,7F5AF0,00E5FF`;
         });
         setAvatarOptions(options);
     };
 
     const applyGeneratedAvatar = async (newPhotoUrl) => {
         if (!authToken) return;
-        setAvatarOptions([]); // Close modal immediately
+        setAvatarOptions([]); 
         setUploading(true);
         try {
-            // 1. Update Firebase Auth Profile
             if (auth.currentUser) {
                 await updateFirebaseAuthProfile(auth.currentUser, { photoURL: newPhotoUrl });
             }
 
-            // 2. Update Custom DB Profile
             const profileRes = await axios.put(`${API_BASE_URL}/api/auth/profile`, {
                 photoURL: newPhotoUrl
             }, { headers: { Authorization: `Bearer ${authToken}` } });
 
-            // 3. Update Global State dynamically
             setUserData(profileRes.data.user);
-
             setUploading(false);
         } catch (error) {
             console.error("Failed to apply avatar", error);
@@ -103,61 +93,71 @@ const Profile = () => {
         }
     };
 
-    const snapScore = userData?.snapScore || Math.floor(Math.random() * 5000); // Mock snap score if 0
+    const snapScore = userData?.snapScore || Math.floor(Math.random() * 5000);
 
     return (
-        <div className="min-h-screen bg-surface-950 font-sans pb-10 text-surface-50 relative">
+        <div className="min-h-screen bg-[#0F0F14] font-sans pb-10 text-white relative overflow-hidden">
+            {/* Ambient Background Glows */}
+            <div className="absolute top-[-20%] left-[-10%] w-[70%] h-[50%] bg-[#7F5AF0]/15 rounded-full blur-[140px] pointer-events-none z-0"></div>
+            <div className="absolute bottom-[20%] right-[-20%] w-[60%] h-[60%] bg-[#00E5FF]/10 rounded-full blur-[120px] pointer-events-none z-0"></div>
+
             {/* Avatar Generator Modal */}
-            {avatarOptions.length > 0 && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-950/80 backdrop-blur-sm">
-                    <div className="bg-surface-900 border border-surface-800 rounded-3xl p-6 w-full max-w-sm shadow-glow relative animate-in fade-in zoom-in duration-200">
-                        <button
-                            onClick={() => setAvatarOptions([])}
-                            className="absolute top-4 right-4 p-2 bg-surface-800 rounded-full hover:bg-surface-700 text-surface-400 hover:text-white transition-colors"
+            <AnimatePresence>
+                {avatarOptions.length > 0 && (
+                    <motion.div 
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0F0F14]/90 backdrop-blur-md"
+                    >
+                        <motion.div 
+                            initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+                            className="bg-[#16161D] border border-white/10 rounded-3xl p-6 w-full max-w-sm shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative overflow-hidden"
                         >
-                            ✕
-                        </button>
-                        <h2 className="text-xl font-bold text-center mb-6 text-white">Choose an Avatar</h2>
-                        <div className="grid grid-cols-4 gap-4 mb-6">
-                            {avatarOptions.map((url, idx) => (
-                                <div
-                                    key={idx}
-                                    onClick={() => applyGeneratedAvatar(url)}
-                                    className="cursor-pointer hover:scale-105 transition active:scale-95 bg-surface-800 rounded-2xl overflow-hidden border-2 border-transparent hover:border-primary-500"
-                                >
-                                    <img src={url} alt={`Option ${idx}`} className="w-full h-auto" />
-                                </div>
-                            ))}
-                        </div>
-                        <button
-                            onClick={handleOpenAvatarGenerator}
-                            className="w-full py-3 bg-surface-800 hover:bg-surface-700 text-white rounded-xl font-semibold text-sm transition shadow-soft flex justify-center items-center gap-2"
-                        >
-                            <Dices size={18} /> Re-roll Options
-                        </button>
-                    </div>
-                </div>
-            )}
+                            <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#7F5AF0]/20 rounded-full blur-[50px] pointer-events-none z-0"></div>
+                            
+                            <button onClick={() => setAvatarOptions([])} className="absolute top-4 right-4 p-2 bg-white/5 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-colors z-10">
+                                ✕
+                            </button>
+                            <h2 className="text-[22px] font-extrabold text-center mb-6 text-white tracking-tight flex items-center justify-center gap-2 z-10 relative">
+                                <Sparkles className="text-[#00E5FF]" size={20} /> Generate AI Avatar
+                            </h2>
+                            <div className="grid grid-cols-4 gap-4 mb-6 relative z-10">
+                                {avatarOptions.map((url, idx) => (
+                                    <motion.div
+                                        whileHover={{ scale: 1.1, zIndex: 10 }} whileTap={{ scale: 0.9 }}
+                                        key={idx} onClick={() => applyGeneratedAvatar(url)}
+                                        className="cursor-pointer bg-[#0F0F14] rounded-2xl overflow-hidden border border-white/5 hover:border-[#00E5FF] shadow-sm"
+                                    >
+                                        <img src={url} alt={`Option ${idx}`} className="w-full h-auto" />
+                                    </motion.div>
+                                ))}
+                            </div>
+                            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={handleOpenAvatarGenerator} className="w-full relative z-10 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl font-bold text-sm transition shadow-sm flex justify-center items-center gap-2">
+                                <Dices size={18} className="text-[#00E5FF]" /> Re-roll Options
+                            </motion.button>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Header */}
-            <div className="flex justify-between items-center px-4 py-4 sticky top-0 bg-surface-950/80 backdrop-blur-xl z-10 border-b border-surface-800/50">
+            <div className="flex justify-between items-center px-4 py-4 sticky top-0 bg-[#0F0F14]/60 backdrop-blur-2xl z-20 border-b border-white/5 shadow-sm">
                 <div className="flex items-center gap-4">
-                    <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-xl hover:bg-surface-800 transition text-surface-400 hover:text-white">
-                        <ChevronLeft size={24} strokeWidth={2} />
+                    <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-full hover:bg-white/10 transition text-white/80 hover:text-white">
+                        <ChevronLeft size={28} strokeWidth={2.5} />
                     </button>
-                    <button className="p-2 rounded-xl bg-surface-900 hover:bg-surface-800 transition text-surface-400 hover:text-white border border-surface-800">
+                    <button className="p-2 rounded-full bg-white/5 hover:bg-white/10 transition text-white/80 hover:text-white border border-white/10">
                         <Share size={18} strokeWidth={2} />
                     </button>
                 </div>
                 <div className="flex items-center gap-2">
-                    <button onClick={handleLogout} className="p-2 rounded-xl bg-surface-900 hover:bg-surface-800 transition text-surface-400 hover:text-red-400 border border-surface-800" title="Settings / Logout">
-                        <Settings size={20} strokeWidth={2} />
+                    <button onClick={handleLogout} className="p-2.5 rounded-full bg-red-500/10 hover:bg-red-500/20 transition text-red-400 border border-red-500/20" title="Logout">
+                        <LogOut size={18} strokeWidth={2.5} />
                     </button>
                 </div>
             </div>
 
             {/* Profile Info Header Content */}
-            <div className="flex flex-col items-center px-4 pt-6 pb-8 relative">
+            <div className="flex flex-col items-center px-4 pt-8 pb-8 relative z-10">
                 <input
                     type="file"
                     accept="image/*"
@@ -166,121 +166,136 @@ const Profile = () => {
                     onChange={handleAvatarChange}
                 />
 
-                <div
+                <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={handleAvatarClick}
-                    className={`w-[120px] h-[120px] bg-gradient-to-br from-primary-500 to-primary-700 rounded-3xl p-1 shadow-glow mb-4 relative flex items-center justify-center transform hover:scale-105 transition duration-300 cursor-pointer ${uploading ? 'opacity-50 animate-pulse' : ''}`}
+                    className={`w-[130px] h-[130px] bg-gradient-to-br from-[#7F5AF0] to-[#00E5FF] rounded-full p-1 shadow-[0_0_30px_rgba(127,90,240,0.4)] mb-5 relative flex items-center justify-center cursor-pointer ${uploading ? 'opacity-50 animate-pulse' : ''}`}
                 >
-                    <div className="w-full h-full bg-surface-900 rounded-2xl overflow-hidden flex items-center justify-center relative">
+                    <div className="w-full h-full bg-[#16161D] rounded-full overflow-hidden flex items-center justify-center relative border-2 border-[#0F0F14]">
                         {userData?.photoURL ? (
                             <img src={userData.photoURL} alt="profile" className="w-full h-full object-cover" />
                         ) : (
-                            <span className="text-3xl text-surface-400">👤</span>
+                            <span className="text-4xl">😎</span>
                         )}
+                        <div className="absolute bottom-2 right-2 bg-[#0F0F14] p-1.5 rounded-full border border-white/20">
+                            <Camera size={14} className="text-white" />
+                        </div>
                     </div>
-                </div>
+                </motion.div>
 
-                <button
-                    onClick={handleOpenAvatarGenerator}
-                    disabled={uploading}
-                    className="mt-2 mb-6 flex items-center gap-2 px-5 py-2.5 bg-surface-900 hover:bg-surface-800 text-surface-50 rounded-xl font-medium text-sm transition shadow-soft border border-surface-800 disabled:opacity-50"
-                >
-                    <Dices size={18} className={uploading ? "animate-spin" : ""} />
-                    Generate Avatar
-                </button>
-
-                <h1 className="text-2xl font-bold tracking-tight text-white text-center">
+                <h1 className="text-[28px] font-extrabold tracking-tight text-white text-center drop-shadow-md">
                     {userData?.displayName || currentUser?.displayName || 'Snapchatter'}
                 </h1>
 
-                <p className="text-surface-400 font-medium mt-2 flex items-center gap-2 bg-surface-900 px-4 py-1.5 rounded-full shadow-soft text-sm border border-surface-800">
-                    {userData?.username || 'user'} <span className="text-surface-600">|</span> 👻 {snapScore} <span className="text-surface-600">|</span> ♈
-                </p>
+                <div className="flex items-center gap-2 mt-2 mb-6">
+                    <p className="text-white/60 font-semibold bg-white/5 backdrop-blur-md px-4 py-1.5 rounded-full shadow-inner text-[13px] border border-white/10 tracking-widest uppercase">
+                        @{userData?.username || 'user'}
+                    </p>
+                    <p className="text-[#00E5FF] font-bold bg-[#00E5FF]/10 backdrop-blur-md px-3 py-1.5 rounded-full shadow-inner text-[13px] border border-[#00E5FF]/20 flex items-center gap-1">
+                        👻 {snapScore}
+                    </p>
+                </div>
+
+                <motion.button
+                    whileHover={{ scale: 1.05 }} 
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleOpenAvatarGenerator}
+                    disabled={uploading}
+                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-white/10 to-white/5 hover:from-white/15 hover:to-white/10 text-white rounded-2xl font-bold text-[14px] transition shadow-lg border border-white/20 disabled:opacity-50 backdrop-blur-md"
+                >
+                    <Dices size={20} className={uploading ? "animate-spin text-[#00E5FF]" : "text-[#7F5AF0]"} />
+                    Generate AI Avatar
+                </motion.button>
             </div>
 
             {/* Scrollable Context sections */}
-            <div className="px-4 space-y-4 max-w-2xl mx-auto">
+            <div className="px-4 space-y-4 max-w-2xl mx-auto z-10 relative">
 
                 {/* My Stories Section */}
-                <div className="bg-surface-900 rounded-2xl shadow-soft overflow-hidden border border-surface-800">
-                    <div className="px-4 py-3 bg-surface-900 border-b border-surface-800">
-                        <h2 className="font-semibold text-sm tracking-widest text-surface-400 uppercase">My Stories</h2>
+                <div className="bg-white/5 backdrop-blur-md rounded-3xl shadow-lg border border-white/10 overflow-hidden group">
+                    <div className="px-5 py-4 border-b border-white/5">
+                        <h2 className="font-extrabold text-[12px] tracking-widest text-white/40 uppercase">Story & Media</h2>
                     </div>
-                    <div className="p-4 flex items-center justify-between hover:bg-surface-800 cursor-pointer transition">
-                        <div className="flex items-center gap-4">
-                            <div className="w-[45px] h-[45px] rounded-xl bg-primary-900/30 flex items-center justify-center border border-primary-800">
-                                <Camera size={20} className="text-primary-500" strokeWidth={2} />
+                    <div className="p-4 flex items-center justify-between hover:bg-white/5 cursor-pointer transition">
+                        <div className="flex items-center gap-4 pl-1">
+                            <div className="w-[46px] h-[46px] rounded-2xl bg-[#7F5AF0]/20 flex items-center justify-center border border-[#7F5AF0]/30 shadow-inner">
+                                <Camera size={22} className="text-[#7F5AF0]" strokeWidth={2} />
                             </div>
-                            <span className="font-medium text-surface-50">Add to My Story</span>
+                            <span className="font-bold text-[16px] text-white tracking-tight">Add to My Story</span>
                         </div>
-                        <ChevronLeft size={20} className="text-surface-500 rotate-180" />
+                        <ChevronLeft size={20} className="text-white/30 rotate-180" />
                     </div>
                 </div>
 
                 {/* Friends Section */}
-                <div className="bg-surface-900 rounded-2xl shadow-soft overflow-hidden border border-surface-800">
-                    <div className="px-4 py-3 bg-surface-900 border-b border-surface-800">
-                        <h2 className="font-semibold text-sm tracking-widest text-surface-400 uppercase">Friends</h2>
+                <div className="bg-white/5 backdrop-blur-md rounded-3xl shadow-lg border border-white/10 overflow-hidden">
+                    <div className="px-5 py-4 border-b border-white/5">
+                        <h2 className="font-extrabold text-[12px] tracking-widest text-white/40 uppercase">Social</h2>
                     </div>
 
-                    <div onClick={() => navigate('/friends')} className="p-4 flex items-center justify-between hover:bg-surface-800 cursor-pointer transition border-b border-surface-800">
-                        <div className="flex items-center gap-4">
-                            <UserPlus size={22} className="text-primary-500" strokeWidth={2} />
-                            <span className="font-medium text-surface-50">Add Friends</span>
+                    <div onClick={() => navigate('/friends')} className="p-4 flex items-center justify-between hover:bg-white/5 cursor-pointer transition border-b border-white/5">
+                        <div className="flex items-center gap-4 pl-1">
+                            <div className="w-[46px] h-[46px] rounded-2xl bg-[#00E5FF]/10 flex items-center justify-center border border-[#00E5FF]/20 shadow-inner">
+                                <UserPlus size={22} className="text-[#00E5FF]" strokeWidth={2} />
+                            </div>
+                            <span className="font-bold text-[16px] text-white tracking-tight">Add Friends</span>
                         </div>
-                        <ChevronLeft size={20} className="text-surface-500 rotate-180" />
+                        <ChevronLeft size={20} className="text-white/30 rotate-180" />
                     </div>
-                    <div onClick={() => navigate('/friends')} className="p-4 flex items-center justify-between hover:bg-surface-800 cursor-pointer transition">
-                        <div className="flex items-center gap-4">
-                            <Users size={22} className="text-primary-500" strokeWidth={2} />
-                            <span className="font-medium text-surface-50">My Friends</span>
+                    <div onClick={() => navigate('/friends')} className="p-4 flex items-center justify-between hover:bg-white/5 cursor-pointer transition">
+                        <div className="flex items-center gap-4 pl-1">
+                            <div className="w-[46px] h-[46px] rounded-2xl bg-white/10 flex items-center justify-center border border-white/10 shadow-inner">
+                                <Users size={22} className="text-white" strokeWidth={2} />
+                            </div>
+                            <span className="font-bold text-[16px] text-white tracking-tight">My Friends</span>
                         </div>
-                        <ChevronLeft size={20} className="text-surface-500 rotate-180" />
+                        <ChevronLeft size={20} className="text-white/30 rotate-180" />
                     </div>
                 </div>
 
                 {/* Snap Map Section */}
-                <div className="bg-surface-900 rounded-2xl shadow-soft overflow-hidden border border-surface-800">
-                    <div className="px-4 py-3 bg-surface-900 border-b border-surface-800">
-                        <h2 className="font-semibold text-sm tracking-widest text-surface-400 uppercase">Map Settings</h2>
+                <div className="bg-white/5 backdrop-blur-md rounded-3xl shadow-lg border border-white/10 overflow-hidden">
+                    <div className="px-5 py-4 border-b border-white/5">
+                        <h2 className="font-extrabold text-[12px] tracking-widest text-white/40 uppercase">Location</h2>
                     </div>
-                    <div className="p-4 flex items-center justify-between hover:bg-surface-800 cursor-pointer transition">
-                        <div className="flex items-center gap-4">
-                            <MapPin size={22} className="text-primary-500" strokeWidth={2} />
-                            <span className="font-medium text-surface-50">Sharing Location</span>
+                    <div className="p-4 flex items-center justify-between hover:bg-white/5 cursor-pointer transition">
+                        <div className="flex items-center gap-4 pl-1">
+                            <div className="w-[46px] h-[46px] rounded-2xl bg-green-500/10 flex items-center justify-center border border-green-500/20 shadow-inner">
+                                <MapPin size={22} className="text-green-400" strokeWidth={2} />
+                            </div>
+                            <span className="font-bold text-[16px] text-white tracking-tight">Ghost Mode</span>
                         </div>
-                        <span className="text-xs font-semibold text-surface-400 bg-surface-800 px-2 py-1 rounded-md">Only Me</span>
+                        <span className="text-[12px] font-bold text-[#0F0F14] bg-green-400 px-3 py-1.5 rounded-full shadow-[0_0_10px_rgba(74,222,128,0.5)]">Active</span>
                     </div>
                 </div>
 
                 {/* Spotlight Section */}
-                <div className="bg-surface-900 rounded-2xl shadow-soft overflow-hidden border border-surface-800">
-                    <div className="px-4 py-3 bg-surface-900 border-b border-surface-800">
-                        <h2 className="font-semibold text-sm tracking-widest text-surface-400 uppercase">Spotlight</h2>
-                    </div>
+                <div className="bg-white/5 backdrop-blur-md rounded-3xl shadow-lg border border-white/10 overflow-hidden">
                     <div className="flex justify-around py-6">
-                        <div className="flex flex-col items-center gap-3 cursor-pointer hover:opacity-80 transition group">
-                            <div className="w-[50px] h-[50px] bg-surface-800 group-hover:bg-primary-900/30 rounded-xl border border-surface-700 group-hover:border-primary-800 flex items-center justify-center transition-colors">
-                                <Star size={20} className="text-surface-300 group-hover:text-primary-500 transition-colors" strokeWidth={2} />
+                        <motion.div whileHover={{ scale: 1.05 }} className="flex flex-col items-center gap-3 cursor-pointer group">
+                            <div className="w-[54px] h-[54px] bg-white/5 group-hover:bg-yellow-400/20 rounded-2xl border border-white/10 group-hover:border-yellow-400/50 flex items-center justify-center transition-colors shadow-inner">
+                                <Star size={24} className="text-white/50 group-hover:text-yellow-400 transition-colors" strokeWidth={2} />
                             </div>
-                            <span className="font-medium text-sm text-surface-400 group-hover:text-surface-50">Favorites</span>
-                        </div>
-                        <div className="flex flex-col items-center gap-3 cursor-pointer hover:opacity-80 transition group">
-                            <div className="w-[50px] h-[50px] bg-surface-800 group-hover:bg-primary-900/30 rounded-xl border border-surface-700 group-hover:border-primary-800 flex items-center justify-center transition-colors">
-                                <Upload size={20} className="text-surface-300 group-hover:text-primary-500 transition-colors" strokeWidth={2} />
+                            <span className="font-bold text-[13px] text-white/40 group-hover:text-white transition-colors tracking-wide">Favorites</span>
+                        </motion.div>
+                        <motion.div whileHover={{ scale: 1.05 }} className="flex flex-col items-center gap-3 cursor-pointer group">
+                            <div className="w-[54px] h-[54px] bg-white/5 group-hover:bg-[#7F5AF0]/20 rounded-2xl border border-white/10 group-hover:border-[#7F5AF0]/50 flex items-center justify-center transition-colors shadow-inner">
+                                <Upload size={24} className="text-white/50 group-hover:text-[#7F5AF0] transition-colors" strokeWidth={2} />
                             </div>
-                            <span className="font-medium text-sm text-surface-400 group-hover:text-surface-50">Submit</span>
-                        </div>
-                        <div className="flex flex-col items-center gap-3 cursor-pointer hover:opacity-80 transition group">
-                            <div className="w-[50px] h-[50px] bg-surface-800 group-hover:bg-primary-900/30 rounded-xl border border-surface-700 group-hover:border-primary-800 flex items-center justify-center transition-colors">
-                                <Eye size={20} className="text-surface-300 group-hover:text-primary-500 transition-colors" strokeWidth={2} />
+                            <span className="font-bold text-[13px] text-white/40 group-hover:text-white transition-colors tracking-wide">Submit</span>
+                        </motion.div>
+                        <motion.div whileHover={{ scale: 1.05 }} className="flex flex-col items-center gap-3 cursor-pointer group">
+                            <div className="w-[54px] h-[54px] bg-white/5 group-hover:bg-[#00E5FF]/20 rounded-2xl border border-white/10 group-hover:border-[#00E5FF]/50 flex items-center justify-center transition-colors shadow-inner">
+                                <Eye size={24} className="text-white/50 group-hover:text-[#00E5FF] transition-colors" strokeWidth={2} />
                             </div>
-                            <span className="font-medium text-sm text-surface-400 group-hover:text-surface-50">Views</span>
-                        </div>
+                            <span className="font-bold text-[13px] text-white/40 group-hover:text-white transition-colors tracking-wide">Views</span>
+                        </motion.div>
                     </div>
                 </div>
 
-                <div className="pt-6 pb-12 flex justify-center">
-                    <p className="text-xs font-semibold text-surface-500 flex items-center gap-1 uppercase tracking-widest"><BookOpen size={14} /> VibeChat Workspace</p>
+                <div className="pt-8 pb-12 flex justify-center opacity-40">
+                    <p className="text-[11px] font-extrabold text-white flex items-center gap-1.5 uppercase tracking-[0.2em]"><BookOpen size={14} /> VibeChat Network</p>
                 </div>
 
             </div>

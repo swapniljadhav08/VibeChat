@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import { useAuth } from '../../context/AuthContext';
-import { ChevronLeft, MessageSquarePlus, Search, Camera, UserPlus } from 'lucide-react';
+import { ChevronLeft, MessageSquarePlus, Search, Camera, UserPlus, Mic, Image as ImageIcon, FileText, Sparkles, X, Check, CheckCheck } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
@@ -29,10 +30,7 @@ const ChatList = () => {
 
     useEffect(() => {
         if (!authToken) {
-            // If token is missing, set a timeout to stop loading and show an error/empty state
-            const fallbackTimer = setTimeout(() => {
-                setLoading(false);
-            }, 5000); // give it 5 seconds maximum
+            const fallbackTimer = setTimeout(() => setLoading(false), 5000);
             return () => clearTimeout(fallbackTimer);
         }
 
@@ -81,182 +79,261 @@ const ChatList = () => {
         return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
 
+    const renderMessagePreview = (msg) => {
+        if (!msg) return <span className="text-[#00E5FF] font-medium tracking-wide">New Chat</span>;
+        
+        const isMe = String(msg.senderId?._id || msg.senderId) === String(userData?._id);
+        
+        let prefix = "";
+        if (msg.messageType === 'image') return <span className="flex items-center gap-1.5"><ImageIcon size={14} className="text-[#7F5AF0]" /> Photo</span>;
+        if (msg.messageType === 'audio') return <span className="flex items-center gap-1.5"><Mic size={14} className="text-[#00E5FF]" /> Voice Note</span>;
+        if (msg.messageType === 'document') return <span className="flex items-center gap-1.5"><FileText size={14} className="text-gray-400" /> Document</span>;
+        
+        return <span className="truncate">{msg.text || msg.content || 'Sent a message'}</span>;
+    };
+
     return (
-        <div className="h-full w-full bg-white text-black overflow-hidden flex flex-col font-sans">
-            {/* Header */}
-            <div className="flex items-center justify-between px-3 py-2 bg-white border-b border-gray-100 z-10 w-full shrink-0">
-                <div className="flex items-center gap-2">
-                    <button onClick={() => navigate('/')} className="p-2 -ml-2 rounded-full hover:bg-gray-100 transition shrink-0 md:hidden">
-                        <ChevronLeft size={30} className="text-gray-800" strokeWidth={2.5} />
+        <div className="h-full w-full bg-[#0F0F14] text-white overflow-hidden flex flex-col font-sans relative select-none">
+            {/* Ambient Animated Glows for Premium Vibe */}
+            <div className="absolute top-[-10%] left-[-20%] w-[70%] h-[60%] bg-[#7F5AF0]/15 rounded-full blur-[120px] pointer-events-none z-0 animate-pulse"></div>
+            <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-[#00E5FF]/10 rounded-full blur-[100px] pointer-events-none z-0"></div>
+
+            {/* Premium Header */}
+            <div className="flex items-center justify-between px-4 py-4 bg-[#0F0F14]/60 backdrop-blur-xl border-b border-white/5 z-10 w-full shrink-0">
+                <div className="flex items-center gap-3">
+                    <button onClick={() => navigate('/')} className="p-2 -ml-2 rounded-full hover:bg-white/10 transition shrink-0 flex items-center justify-center text-white/80 hover:text-white group">
+                        <ChevronLeft size={28} strokeWidth={2.5} />
+                        <Camera size={18} strokeWidth={2.5} className="ml-[-4px] opacity-70 group-hover:opacity-100 transition-opacity" />
                     </button>
-                    <div onClick={() => navigate('/profile')} className="w-[36px] h-[36px] rounded-full bg-gray-200 overflow-hidden cursor-pointer hover:opacity-80 transition shrink-0 flex items-center justify-center shadow-sm">
-                        {userData?.photoURL || currentUser?.photoURL ? (
-                            <img src={userData?.photoURL || currentUser?.photoURL} alt="Profile" className="w-full h-full object-cover" />
-                        ) : (
-                            <span className="text-lg">👻</span>
-                        )}
-                    </div>
-                    <div className="flex items-center justify-center w-[36px] h-[36px] bg-gray-100 rounded-full cursor-pointer hover:bg-gray-200 transition">
-                        <Search size={20} className="text-gray-600" strokeWidth={2.5} />
+                    <div onClick={() => navigate('/profile')} className="w-[40px] h-[40px] rounded-full bg-white/10 border border-white/20 p-0.5 overflow-hidden cursor-pointer hover:scale-105 transition shrink-0 shadow-[0_0_15px_rgba(127,90,240,0.3)]">
+                        <div className="w-full h-full rounded-full overflow-hidden bg-gray-800">
+                            {userData?.photoURL || currentUser?.photoURL ? (
+                                <img src={userData?.photoURL || currentUser?.photoURL} alt="Profile" className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center text-lg">😎</div>
+                            )}
+                        </div>
                     </div>
                 </div>
-                <h1 className="text-[20px] font-extrabold text-black tracking-tight absolute left-1/2 transform -translate-x-1/2">Chat</h1>
-                <div className="flex items-center gap-3">
-                    <div onClick={() => navigate('/')} className="flex items-center justify-center w-[36px] h-[36px] bg-gray-100 rounded-full cursor-pointer hover:bg-gray-200 transition text-gray-700 hover:text-[#0099FF]" title="Return to Camera">
-                        <Camera size={20} strokeWidth={2} />
-                    </div>
-                    <div onClick={fetchUsers} className="flex items-center justify-center w-[36px] h-[36px] bg-gray-100 rounded-full cursor-pointer hover:bg-gray-200 transition" title="Start New Chat">
-                        <MessageSquarePlus size={20} className="text-gray-700" strokeWidth={2} />
-                    </div>
+                
+                <h1 className="text-[22px] font-extrabold tracking-tight absolute left-1/2 transform -translate-x-1/2 bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70 drop-shadow-md">
+                    VibeChat
+                </h1>
+                
+                <div className="flex items-center gap-2">
+                    <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => alert("AI Prioritization coming soon!")} className="flex items-center justify-center w-[40px] h-[40px] bg-white/5 border border-white/10 rounded-full cursor-pointer hover:bg-white/10 transition text-[#00E5FF]">
+                        <Sparkles size={20} strokeWidth={2} className="drop-shadow-[0_0_8px_#00E5FF]" />
+                    </motion.div>
+                </div>
+            </div>
+
+            {/* Smart Search Bar */}
+            <div className="px-4 py-3 z-10">
+                <div className="w-full h-12 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl flex items-center px-4 focus-within:bg-white/10 focus-within:border-[#7F5AF0]/50 transition-all shadow-inner">
+                    <Search size={20} className="text-white/40 mr-3" />
+                    <input type="text" placeholder="Explore chats or ask AI..." className="flex-1 bg-transparent border-none outline-none text-white placeholder-white/40 font-medium text-[15px]" />
                 </div>
             </div>
 
             {/* Chat List */}
-            <div className="flex-1 overflow-y-auto w-full bg-white scrollbar-hide relative">
-                {showNewChat ? (
-                    <div className="absolute inset-x-0 bottom-0 h-[95%] z-50 bg-white rounded-t-[32px] flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transition-transform duration-300 animate-in slide-in-from-bottom border-t border-gray-100">
-                        {/* Notch Handle for premium feel */}
-                        <div className="w-full flex justify-center pt-3 pb-2 shrink-0">
-                            <div className="w-12 h-1.5 bg-gray-200 rounded-full"></div>
+            <div className="flex-1 overflow-y-auto w-full z-10 scrollbar-hide relative pb-20">
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center h-full gap-4 text-white/50">
+                        <div className="w-8 h-8 border-4 border-[#7F5AF0]/30 border-t-[#00E5FF] rounded-full animate-spin shadow-[0_0_15px_#00E5FF]"></div>
+                        <p className="font-semibold tracking-wide">Syncing universe...</p>
+                    </div>
+                ) : chats.length > 0 ? (
+                    <div className="px-2 flex flex-col gap-1.5">
+                        <AnimatePresence>
+                            {chats.map(chat => {
+                                const other = chat.participants.find(p => String(p._id) !== String(userData?._id)) || chat.participants[0];
+                                const isOnline = other?._id && onlineUsers.includes(other._id);
+                                const isNew = !chat.lastMessage?.text;
+                                const isMe = String(chat.lastMessage?.senderId?._id || chat.lastMessage?.senderId) === String(userData?._id);
+
+                                return (
+                                    <motion.div 
+                                        key={chat._id}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        whileHover={{ scale: 0.99, backgroundColor: "rgba(255,255,255,0.08)" }}
+                                        whileTap={{ scale: 0.97 }}
+                                        onClick={() => navigate(`/chat/${chat._id}`)} 
+                                        className="w-full flex items-center p-3 bg-white/5 backdrop-blur-xl border border-white/5 rounded-2xl cursor-pointer transition-colors shadow-sm overflow-hidden relative group"
+                                    >
+                                        <div className="relative mr-4 shrink-0">
+                                            <div className="w-[56px] h-[56px] bg-gradient-to-tr from-gray-800 to-gray-700 p-0.5 rounded-full overflow-hidden shadow-lg group-hover:shadow-[0_0_15px_rgba(127,90,240,0.4)] transition-shadow">
+                                                <div className="w-full h-full bg-[#0F0F14] rounded-full overflow-hidden">
+                                                    {other?.photoURL ? <img src={other.photoURL} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-2xl">😎</div>}
+                                                </div>
+                                            </div>
+                                            {isOnline && (
+                                                <div className="absolute bottom-0 right-0 w-4 h-4 bg-[#0F0F14] rounded-full flex items-center justify-center">
+                                                    <div className="w-2.5 h-2.5 bg-[#00E5FF] rounded-full shadow-[0_0_8px_#00E5FF] animate-pulse"></div>
+                                                </div>
+                                            )}
+                                        </div>
+                                        
+                                        <div className="flex-1 min-w-0 pr-2">
+                                            <div className="flex justify-between items-end mb-1">
+                                                <h3 className="font-bold text-[17px] text-white truncate tracking-tight">{other?.displayName || other?.username || 'Unknown'}</h3>
+                                                <span className="text-[12px] font-semibold text-white/40 shrink-0">{formatTimestamp(chat.lastMessage?.timestamp)}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <div className={`text-[14px] truncate flex-1 font-medium ${isNew || (!isMe && chat.lastMessage?.status !== 'read') ? 'text-white' : 'text-white/50'}`}>
+                                                    <span className="flex items-center gap-1.5">
+                                                        {isMe && !isNew && (
+                                                            <span>
+                                                                {chat.lastMessage?.status === 'read' ? <CheckCheck size={16} className="text-[#00E5FF]" /> : <Check size={16} className="text-white/40" />}
+                                                            </span>
+                                                        )}
+                                                        {renderMessagePreview(chat.lastMessage)}
+                                                    </span>
+                                                </div>
+                                                {/* Unread Badge */}
+                                                {!isMe && !isNew && chat.lastMessage?.status !== 'read' && (
+                                                    <div className="w-5 h-5 bg-[#7F5AF0] rounded-full shadow-[0_0_10px_#7F5AF0] flex items-center justify-center text-[10px] font-bold text-white shrink-0 ml-2">
+                                                        1
+                                                    </div>
+                                                )}
+                                                {isNew && (
+                                                    <div className="w-2.5 h-2.5 bg-[#00E5FF] rounded-full shadow-[0_0_8px_#00E5FF] ml-2 shrink-0"></div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
+                        </AnimatePresence>
+                    </div>
+                ) : (
+                    <div className="flex flex-col items-center justify-center pt-32 text-center px-8 z-10 relative">
+                        <motion.div 
+                            initial={{ scale: 0.8, opacity: 0 }} 
+                            animate={{ scale: 1, opacity: 1 }} 
+                            transition={{ type: "spring" }}
+                            className="w-28 h-28 mb-6 relative"
+                        >
+                            <div className="absolute inset-0 bg-[#7F5AF0] blur-[40px] opacity-40 rounded-full"></div>
+                            <div className="w-full h-full bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl flex items-center justify-center shadow-2xl rotate-12">
+                                <MessageSquarePlus size={48} className="text-[#00E5FF] drop-shadow-[0_0_15px_rgba(0,229,255,0.5)] -rotate-12" />
+                            </div>
+                        </motion.div>
+                        <h2 className="text-2xl font-extrabold text-white mb-2 tracking-tight">No conversations yet</h2>
+                        <p className="text-white/50 font-medium text-[15px] max-w-xs leading-relaxed">The universe is quiet. Tap below to start a new dynamic chat.</p>
+                    </div>
+                )}
+            </div>
+
+            {/* Floating Action Button */}
+            <AnimatePresence>
+                {!showNewChat && (
+                    <motion.button 
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0, opacity: 0 }}
+                        whileHover={{ scale: 1.05 }} 
+                        whileTap={{ scale: 0.95 }}
+                        onClick={fetchUsers}
+                        className="absolute bottom-8 right-6 w-16 h-16 bg-gradient-to-tr from-[#7F5AF0] to-[#00E5FF] rounded-full shadow-[0_8px_30px_rgba(127,90,240,0.6)] flex items-center justify-center z-40 border border-white/20"
+                    >
+                        <MessageSquarePlus size={28} className="text-white drop-shadow-md" strokeWidth={2.5} />
+                    </motion.button>
+                )}
+            </AnimatePresence>
+
+            {/* Smart New Chat Slide-up Modal */}
+            <AnimatePresence>
+                {showNewChat && (
+                    <motion.div 
+                        initial={{ y: "100%" }}
+                        animate={{ y: 0 }}
+                        exit={{ y: "100%" }}
+                        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                        className="absolute inset-x-0 bottom-0 h-[90%] z-50 bg-[#16161D]/90 backdrop-blur-2xl rounded-t-[40px] flex flex-col shadow-[0_-20px_50px_rgba(0,0,0,0.5)] border-t border-white/10"
+                    >
+                        {/* Notch Handle */}
+                        <div className="w-full flex justify-center pt-4 pb-2">
+                            <div className="w-14 h-1.5 bg-white/20 rounded-full"></div>
                         </div>
 
-                        {/* Header for New Chat */}
-                        <div className="flex items-center justify-between px-5 pb-3 pt-1 border-b border-gray-100 bg-white shrink-0">
-                            <h2 className="text-[22px] font-extrabold text-black tracking-tight">New Chat</h2>
-                            <button onClick={() => setShowNewChat(false)} className="bg-gray-100 p-2 rounded-full hover:bg-gray-200 transition active:scale-90 text-gray-600">
-                                <ChevronLeft size={24} strokeWidth={2.5} className="rotate-180" /> {/* Close / Down icon visual */}
+                        {/* Modals Header */}
+                        <div className="flex items-center justify-between px-6 pb-4 pt-2 shrink-0">
+                            <h2 className="text-[24px] font-extrabold text-white tracking-tight drop-shadow-sm flex items-center gap-2">
+                                <Sparkles size={22} className="text-[#7F5AF0]" /> Start Chat
+                            </h2>
+                            <button onClick={() => setShowNewChat(false)} className="bg-white/5 p-2 rounded-full hover:bg-white/10 transition active:scale-90 text-white/70">
+                                <X size={24} strokeWidth={2.5} />
                             </button>
                         </div>
 
-                        {/* Premium 'Add New Friend' Action Card */}
-                        <div className="px-5 pt-5 pb-4 shrink-0">
-                            <div
+                        {/* Add Friend Banner */}
+                        <div className="px-6 pt-2 pb-5 shrink-0">
+                            <motion.div
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
                                 onClick={() => navigate('/friends')}
-                                className="w-full relative overflow-hidden flex items-center p-4 bg-gradient-to-br from-[#0099FF] to-[#0077FF] rounded-2xl cursor-pointer hover:shadow-lg hover:shadow-blue-500/30 transition-all active:scale-[0.98] group"
+                                className="w-full p-5 bg-gradient-to-r from-[#7F5AF0]/20 to-[#00E5FF]/20 border border-white/10 rounded-2xl cursor-pointer hover:border-white/20 transition-all flex items-center relative overflow-hidden"
                             >
-                                <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-xl group-hover:scale-110 transition-transform"></div>
-                                <div className="bg-white/20 p-3 rounded-xl mr-4 backdrop-blur-sm border border-white/20 shadow-sm">
+                                <div className="z-10 bg-[#7F5AF0] p-3 rounded-xl mr-4 shadow-[0_0_15px_#7F5AF0]">
                                     <UserPlus size={24} className="text-white" strokeWidth={2.5} />
                                 </div>
-                                <div className="flex-1">
-                                    <h3 className="text-white font-bold text-[17px] tracking-tight mb-0.5">Add New Friends</h3>
-                                    <p className="text-white/80 font-medium text-[13px] leading-tight">Grow your network to start chatting</p>
+                                <div className="flex-1 z-10">
+                                    <h3 className="text-white font-bold text-[17px] tracking-tight">Discover Network</h3>
+                                    <p className="text-[#00E5FF] font-medium text-[13px] mt-0.5">Find new friends using AI</p>
                                 </div>
-                                <div className="bg-white text-[#0099FF] text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">Find</div>
-                            </div>
+                                <div className="absolute right-0 top-0 w-32 h-32 bg-[#00E5FF]/20 blur-[50px]"></div>
+                            </motion.div>
                         </div>
 
-                        {/* Search Bar */}
-                        <div className="px-5 pb-3">
-                            <div className="bg-gray-50 rounded-2xl flex items-center px-4 h-12 shadow-sm border border-gray-200/50 focus-within:border-[#0099FF]/40 focus-within:bg-white transition-colors focus-within:shadow-blue-500/5">
-                                <Search size={20} className="text-gray-400 mr-2.5" strokeWidth={2} />
+                        {/* Search Friends */}
+                        <div className="px-6 pb-4 shrink-0">
+                            <div className="bg-[#0F0F14] rounded-2xl flex items-center px-4 h-12 border border-white/5 focus-within:border-[#7F5AF0]/50 transition-colors shadow-inner">
+                                <Search size={20} className="text-white/40 mr-2.5" strokeWidth={2} />
                                 <input
                                     type="text"
-                                    placeholder="Search your friends..."
-                                    className="flex-1 bg-transparent outline-none font-semibold text-black placeholder-gray-400 text-[15px]"
+                                    placeholder="Search connections..."
+                                    className="flex-1 bg-transparent border-none outline-none text-white placeholder-white/40 font-medium text-[15px]"
                                     value={searchFriendQuery}
                                     onChange={(e) => setSearchFriendQuery(e.target.value)}
                                 />
                             </div>
                         </div>
 
-                        {/* Your Friends List */}
-                        <div className="flex-1 overflow-y-auto pb-8 hide-scrollbar">
-                            <div className="px-5 py-2">
-                                <h3 className="text-[13px] font-extrabold text-gray-400 uppercase tracking-widest pl-1 mb-2">My Friends</h3>
-                            </div>
-
+                        {/* Friends List */}
+                        <div className="flex-1 overflow-y-auto pb-8 scrollbar-hide px-4">
                             {(() => {
                                 const q = searchFriendQuery.toLowerCase();
                                 const filtered = users.length > 0 ? users.filter(u => u.displayName?.toLowerCase().includes(q) || u.username?.toLowerCase().includes(q)) : [];
                                 return filtered.length > 0 ? filtered.map((u, i) => (
-                                <div key={u._id} onClick={() => startChat(u._id)} className="flex items-center gap-4 px-5 py-3 hover:bg-gray-50 active:bg-gray-100 cursor-pointer transition w-full group">
+                                <motion.div 
+                                    whileHover={{ scale: 0.98, backgroundColor: "rgba(255,255,255,0.05)" }}
+                                    key={u._id} 
+                                    onClick={() => startChat(u._id)} 
+                                    className="flex items-center gap-4 p-3 rounded-2xl cursor-pointer transition w-full mb-1"
+                                >
                                     <div className="relative shrink-0">
-                                        <div className="w-[52px] h-[52px] bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex-shrink-0 overflow-hidden shadow-sm border border-white group-hover:shadow-md transition-shadow">
-                                            {u.photoURL ? <img src={u.photoURL} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[22px]">😎</div>}
+                                        <div className="w-[52px] h-[52px] bg-gray-800 rounded-full flex-shrink-0 overflow-hidden shadow-lg border border-white/10">
+                                            {u.photoURL ? <img src={u.photoURL} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[22px] bg-[#0F0F14]">😎</div>}
                                         </div>
-                                        {onlineUsers.includes(u._id) && <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-[2.5px] border-white rounded-full shadow-sm"></div>}
+                                        {onlineUsers.includes(u._id) && <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-[#00E5FF] border-[2px] border-[#16161D] rounded-full shadow-[0_0_8px_#00E5FF]"></div>}
                                     </div>
-                                    <div className="border-b border-gray-100/60 pb-3 flex-1 pt-1.5 group-last:border-transparent">
-                                        <h3 className="font-bold text-[16px] text-gray-900 tracking-tight leading-tight">{u.displayName || u.username}</h3>
-                                        <p className="text-gray-500 text-[13px] font-medium leading-tight mt-0.5">@{u.username}</p>
+                                    <div className="flex-1">
+                                        <h3 className="font-bold text-[16px] text-white tracking-tight">{u.displayName || u.username}</h3>
+                                        <p className="text-[#00E5FF]/70 text-[13px] font-semibold mt-0.5">@{u.username}</p>
                                     </div>
-                                </div>
+                                </motion.div>
                             )) : (
-                                <div className="flex flex-col items-center justify-center pt-8 text-center px-8">
-                                    <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-5 border border-gray-100 shadow-sm">
-                                        <UserPlus size={36} className="text-gray-400" strokeWidth={1.5} />
-                                    </div>
-                                    <p className="mb-2 text-black font-extrabold text-[19px] tracking-tight">No Friends Yet</p>
-                                    <p className="text-gray-500 font-medium text-[15px] mb-8 leading-relaxed max-w-[240px]">Once you add friends, they'll appear here for you to chat with.</p>
-                                    <button onClick={() => navigate('/friends')} className="px-8 py-3.5 bg-black text-white font-bold text-[15px] rounded-full hover:bg-gray-800 transition shadow-lg active:scale-95 w-full max-w-[200px]">
-                                        Find Friends
-                                    </button>
+                                <div className="flex flex-col items-center justify-center pt-10 text-center opacity-70">
+                                    <UserPlus size={48} className="text-white/20 mb-4" />
+                                    <p className="text-white font-bold text-[17px]">No matches found</p>
                                 </div>
                             );
                             })()}
                         </div>
-                    </div>
-                ) : (
-                    <div>
-                        {loading ? (
-                            <p className="p-8 text-center text-gray-400 font-medium">Loading chats...</p>
-                        ) : chats && chats.length > 0 ? (
-                            chats.map(chat => {
-                                const otherParticipant = chat.participants.find(p => String(p._id) !== String(userData?._id)) || chat.participants[0];
-                                const isParticipantOnline = otherParticipant?._id && onlineUsers.includes(otherParticipant._id);
-                                const isNewChat = !chat.lastMessage?.text;
-
-                                return (
-                                    <div key={chat._id} onClick={() => navigate(`/chat/${chat._id}`)} className="flex items-center pl-3 hover:bg-gray-50 cursor-pointer transition w-full active:bg-gray-100">
-                                        <div className="relative mr-3 flex-shrink-0">
-                                            <div className="w-[54px] h-[54px] bg-gray-200 rounded-full overflow-hidden">
-                                                {otherParticipant?.photoURL ? <img src={otherParticipant.photoURL} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-xl bg-gradient-to-br from-yellow-100 to-yellow-300">😎</div>}
-                                            </div>
-                                            {isParticipantOnline && <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></div>}
-                                        </div>
-                                        <div className="flex-1 min-w-0 border-b border-gray-100 py-3 pr-4 flex justify-between items-center h-full">
-                                            <div className="flex-1 min-w-0 pr-4">
-                                                <h3 className="font-bold text-[18px] text-black truncate tracking-tight">{otherParticipant?.displayName || otherParticipant?.username || 'Unknown'}</h3>
-                                                <p className="text-[14px] truncate flex items-center gap-[6px] mt-[1px]">
-                                                    {isNewChat ? (
-                                                        <>
-                                                            <span className="w-[10px] h-[10px] rounded-[3px] bg-[#0099FF] inline-block flex-shrink-0 drop-shadow-sm"></span>
-                                                            <span className="font-semibold text-[#0099FF]">New Chat</span>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <span className={`w-[11px] h-[11px] rounded-[3px] border-[2px] inline-block flex-shrink-0 ${chat.lastMessage?.senderId?._id === userData?._id || chat.lastMessage?.senderId === userData?._id ? 'border-gray-400' : 'border-[#0099FF] bg-[#0099FF]'}`}></span>
-                                                            <span className={`font-medium truncate max-w-[150px] ${chat.lastMessage?.senderId?._id === userData?._id || chat.lastMessage?.senderId === userData?._id ? 'text-gray-500' : 'text-black font-semibold'}`}>
-                                                                {chat.lastMessage?.text || 'Sent a message'}
-                                                            </span>
-                                                            <span className="text-gray-300 font-medium text-[10px]">●</span>
-                                                            <span className="text-gray-400 font-medium text-[13px]">{formatTimestamp(chat.lastMessage?.timestamp)}</span>
-                                                        </>
-                                                    )}
-                                                </p>
-                                            </div>
-                                            <div className="flex flex-col items-center justify-center pl-4 border-l border-gray-100 h-[30px]">
-                                                <Camera size={26} className="text-gray-300 hover:text-gray-400 transition-colors" strokeWidth={1.5} />
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })
-                        ) : (
-                            <div className="flex flex-col items-center justify-center pt-24 text-center">
-                                <div className="w-24 h-24 mb-6 opacity-30">
-                                    <MessageSquarePlus size={96} className="text-gray-500" />
-                                </div>
-                                <p className="mb-6 text-gray-500 font-medium text-lg">No chats yet.</p>
-                                <button onClick={fetchUsers} className="px-8 py-3 bg-[#0099FF] text-white font-bold rounded-full hover:bg-blue-600 transition shadow-sm active:scale-95">
-                                    Start a Chat
-                                </button>
-                            </div>
-                        )}
-                    </div>
+                    </motion.div>
                 )}
-            </div>
+            </AnimatePresence>
         </div>
     );
 };

@@ -9,6 +9,7 @@ module.exports = (io) => {
 
         socket.on('register_user', (userId) => {
             onlineUsers.set(userId, socket.id);
+            socket.join(userId.toString()); // Join a personal room for targeted notifications
             io.emit('online_users', Array.from(onlineUsers.keys()));
         });
 
@@ -66,6 +67,36 @@ module.exports = (io) => {
                 await newMessage.populate('senderId', 'displayName photoURL');
 
                 io.to(chatId).emit('receive_message', newMessage);
+
+                // Notification Logic
+                const chat = await Chat.findById(chatId);
+                const { sendNotification } = require('./utils/notificationService');
+                const titleMap = {
+                    'text': 'New Message',
+                    'image': 'New Snap',
+                    'video': 'New Video'
+                };
+                for (const participantId of chat.participants) {
+                    if (participantId.toString() !== senderId.toString()) {
+                        let notificationBody = `${newMessage.senderId.displayName || 'Someone'} sent you a message.`;
+                        if (content.startsWith('📞') || content.startsWith('❌')) {
+                            notificationBody = content; // Show the actual system message content for calls
+                        }
+                        
+                        // Don't send notification for '📞 Started a...' because the ringing overlay is the notification
+                        if (!content.startsWith('📞')) {
+                            await sendNotification(
+                                io,
+                                participantId,
+                                'new_message',
+                                titleMap[messageType] || 'New Message',
+                                notificationBody,
+                                { chatId, senderId }
+                            );
+                        }
+                    }
+                }
+
             } catch (error) {
                 console.error("Error sending message via socket:", error);
             }
@@ -98,6 +129,96 @@ module.exports = (io) => {
                 }
             } catch (error) {
                 console.error("Error updating message status:", error);
+            }
+        });
+
+        // Call Signaling (ZegoCloud)
+        socket.on('initiate_call', async ({ chatId, callerId, roomId, callType, callerName }) => {
+            try {
+                const chat = await Chat.findById(chatId);
+                if (chat) {
+                    for (const participantId of chat.participants) {
+                        if (participantId.toString() !== callerId.toString()) {
+                            io.to(participantId.toString()).emit('incoming_call', {
+                                chatId,
+                                roomId,
+                                callerId,
+                                callerName,
+                                callType
+                            });
+                            
+                            // Send push notification for background app
+                            const { sendNotification } = require('./utils/notificationService');
+                            sendNotification(
+                                null, // pass null so it doesn't emit duplicate 'new_notification' socket event
+                                participantId,
+                                'incoming_call',
+                                'Incoming Call',
+                                `${callerName} is calling you via ${callType}...`,
+                                {
+                                    chatId: chatId.toString(),
+                                    roomId,
+                                    callerId: callerId.toString(),
+                                    callerName,
+                                    callType
+                                }
+                            ).catch(err => console.error("Error triggering call push notification:", err));
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Error initiating call:", err);
+            }
+        });
+
+        socket.on('reject_call', async ({ chatId, senderId }) => {
+            try {
+                const chat = await Chat.findById(chatId);
+                if (chat && senderId) {
+                    for (const participantId of chat.participants) {
+                        if (participantId.toString() !== senderId.toString()) {
+                            io.to(participantId.toString()).emit('call_rejected');
+                        }
+                    }
+                } else {
+                    socket.to(chatId).emit('call_rejected'); // fallback
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        });
+
+        socket.on('accept_call', async ({ chatId, senderId }) => {
+            try {
+                const chat = await Chat.findById(chatId);
+                if (chat && senderId) {
+                    for (const participantId of chat.participants) {
+                        if (participantId.toString() !== senderId.toString()) {
+                            io.to(participantId.toString()).emit('call_accepted');
+                        }
+                    }
+                } else {
+                    socket.to(chatId).emit('call_accepted'); // fallback
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        });
+        
+        socket.on('cancel_call', async ({ chatId, senderId }) => {
+            try {
+                const chat = await Chat.findById(chatId);
+                if (chat && senderId) {
+                    for (const participantId of chat.participants) {
+                        if (participantId.toString() !== senderId.toString()) {
+                            io.to(participantId.toString()).emit('call_cancelled');
+                        }
+                    }
+                } else {
+                    socket.to(chatId).emit('call_cancelled'); // fallback
+                }
+            } catch (err) {
+                console.error(err);
             }
         });
 

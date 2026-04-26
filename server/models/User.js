@@ -8,6 +8,7 @@ const UserSchema = new mongoose.Schema({
     username: { type: String, unique: true },
     photoURL: { type: String },
     snapScore: { type: Number, default: 0 },
+    fcmToken: { type: String },
     location: {
         lat: Number,
         lng: Number,
@@ -19,7 +20,12 @@ const UserSchema = new mongoose.Schema({
     },
     friends: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     friendRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-    sentRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+    sentRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    notificationPreferences: {
+        inApp: { type: Boolean, default: true },
+        push: { type: Boolean, default: false },
+        email: { type: Boolean, default: false }
+    }
 }, {
     timestamps: true
 });

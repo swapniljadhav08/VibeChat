@@ -4,7 +4,7 @@ import { MapPin, MessageSquare, Camera as CameraIcon, Users, Play, Images, Smile
 import CaptureButton from '../camera/CaptureButton';
 import FilterCarousel from '../camera/FilterCarousel';
 
-const BottomNav = ({ onCapture, onToggleFilter, showFilters, currentFilter, onSelectFilter }) => {
+const BottomNav = ({ onCapture, onOpenGallery, onToggleFilter, showFilters, currentFilter, onSelectFilter }) => {
     return (
         <div className="absolute bottom-0 left-0 right-0 flex flex-col items-center justify-end z-10 w-full pointer-events-none pb-8">
 
@@ -21,7 +21,7 @@ const BottomNav = ({ onCapture, onToggleFilter, showFilters, currentFilter, onSe
 
                 {/* Left Options (Images) */}
                 <div className="absolute left-8 md:left-1/4 z-30 pointer-events-auto">
-                    <button className="w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center hover:bg-surface-800/80 transition-all bg-surface-900/60 backdrop-blur-xl shadow-soft border border-surface-700/50 text-surface-400 hover:text-white">
+                    <button onClick={onOpenGallery} className="w-12 h-12 rounded-2xl overflow-hidden flex items-center justify-center hover:bg-surface-800/80 transition-all bg-surface-900/60 backdrop-blur-xl shadow-soft border border-surface-700/50 text-surface-400 hover:text-white cursor-pointer">
                         <Images size={20} strokeWidth={2} />
                     </button>
                 </div>

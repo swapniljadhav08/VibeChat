@@ -43,6 +43,21 @@ const syncUser = async (req, res) => {
             await user.save();
         }
 
+        // Notification for security alert (New Login)
+        // Wait until user is created/found
+        const { sendNotification } = require('../utils/notificationService');
+        if (req.io) {
+            // We fire and forget this one to not delay login
+            sendNotification(
+                req.io,
+                user._id,
+                'security_alert',
+                'New Login Detected',
+                `A new login was detected for your account at ${new Date().toLocaleTimeString()}.`,
+                {}
+            ).catch(err => console.error("Error sending login notification:", err));
+        }
+
         return res.status(200).json({ message: 'User synchronized', user });
     } catch (error) {
         console.error('Error syncing user:', error);
@@ -74,4 +89,24 @@ const updateProfile = async (req, res) => {
     }
 };
 
-module.exports = { syncUser, updateProfile };
+const updateFcmToken = async (req, res) => {
+    try {
+        const uid = req.firebaseUser.uid;
+        const { fcmToken } = req.body;
+
+        const user = await User.findOneAndUpdate(
+            { firebaseUid: uid },
+            { $set: { fcmToken } },
+            { new: true }
+        );
+
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        return res.status(200).json({ message: 'FCM Token updated' });
+    } catch (error) {
+        console.error('Error updating FCM token:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+};
+
+module.exports = { syncUser, updateProfile, updateFcmToken };

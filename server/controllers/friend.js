@@ -65,6 +65,19 @@ exports.sendRequest = async (req, res) => {
 
         await User.findByIdAndUpdate(currentUserId, { $addToSet: { sentRequests: targetId } });
         await User.findByIdAndUpdate(targetId, { $addToSet: { friendRequests: currentUserId } });
+        
+        // Notification
+        const currentUser = await User.findById(currentUserId);
+        const { sendNotification } = require('../utils/notificationService');
+        await sendNotification(
+            req.io,
+            targetId,
+            'friend_request_sent',
+            'New Friend Request',
+            `${currentUser.displayName || currentUser.username} sent you a friend request.`,
+            { senderId: currentUserId }
+        );
+
         res.json({ message: 'Request sent' });
     } catch (error) {
         res.status(500).json({ error: 'Server Error sending request' });
@@ -84,6 +97,19 @@ exports.acceptRequest = async (req, res) => {
             $pull: { sentRequests: currentUserId },
             $addToSet: { friends: currentUserId }
         });
+        
+        // Notification
+        const currentUser = await User.findById(currentUserId);
+        const { sendNotification } = require('../utils/notificationService');
+        await sendNotification(
+            req.io,
+            targetId,
+            'friend_request_accepted',
+            'Friend Request Accepted',
+            `${currentUser.displayName || currentUser.username} accepted your friend request.`,
+            { senderId: currentUserId }
+        );
+
         res.json({ message: 'Request accepted' });
     } catch (error) {
         res.status(500).json({ error: 'Server Error accepting request' });
