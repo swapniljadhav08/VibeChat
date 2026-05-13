@@ -9,9 +9,10 @@ const BottomNav = ({ onCapture, onOpenGallery, onToggleFilter, showFilters, curr
         <div className="absolute bottom-0 left-0 right-0 flex flex-col items-center justify-end z-10 w-full pointer-events-none pb-8">
 
             {/* Capture Controls Row */}
-            <div className="relative flex items-center justify-center mb-6 w-full h-[84px] pointer-events-none">
+            {onCapture && (
+                <div className="relative flex items-center justify-center mb-6 w-full h-[84px] pointer-events-none">
 
-                {/* Background Carousel */}
+                    {/* Background Carousel */}
                 {showFilters && (
                     <FilterCarousel
                         currentFilter={currentFilter}
@@ -49,7 +50,8 @@ const BottomNav = ({ onCapture, onOpenGallery, onToggleFilter, showFilters, curr
                         </button>
                     )}
                 </div>
-            </div>
+                </div>
+            )}
 
             {/* Bottom Tab Bar (Floating Dock Style) */}
             <div className="pointer-events-auto z-30">
@@ -65,11 +67,11 @@ const BottomNav = ({ onCapture, onOpenGallery, onToggleFilter, showFilters, curr
                         <CameraIcon size={22} strokeWidth={2} />
                     </button>
                     <div className="w-px h-6 bg-surface-700/50"></div>
+                    <Link to="/stories" className="text-surface-400 hover:text-primary-500 transition-colors tooltip tooltip-top" data-tip="Stories">
+                        <Play size={22} strokeWidth={2} />
+                    </Link>
                     <button className="text-surface-400 hover:text-primary-500 transition-colors tooltip tooltip-top" data-tip="Friends">
                         <Users size={22} strokeWidth={2} />
-                    </button>
-                    <button className="text-surface-400 hover:text-primary-500 transition-colors tooltip tooltip-top" data-tip="Stories">
-                        <Play size={22} strokeWidth={2} />
                     </button>
                 </div>
             </div>

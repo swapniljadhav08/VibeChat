@@ -10,6 +10,7 @@ import Friends from './pages/Friends';
 import SnapMap from './pages/SnapMap';
 import ChatLayout from './components/chat/ChatLayout';
 import VideoCall from './pages/VideoCall';
+import Stories from './pages/Stories';
 
 // Global Loader component (Fast, lightweight CSS-only matching the AI neon UI)
 const GlobalLoader = () => (
@@ -105,6 +106,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <VideoCall />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/stories"
+          element={
+            <ProtectedRoute>
+              <Stories />
             </ProtectedRoute>
           }
         />

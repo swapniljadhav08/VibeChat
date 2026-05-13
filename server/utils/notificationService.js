@@ -78,7 +78,12 @@ const sendNotification = async (io, userId, type, title, message, data = {}) => 
                 await admin.messaging().send(pushPayload);
                 console.log('Successfully sent FCM push notification');
             } catch (fcmError) {
-                console.error('Error sending FCM push:', fcmError);
+                if (fcmError.code === 'app/invalid-credential') {
+                    console.warn('FCM Push skipped: Missing serviceAccountKey.json credentials.');
+                } else {
+                    console.error('Error sending FCM push:', fcmError);
+                }
+                
                 // If token is invalid/unregistered, you might want to remove it from DB
                 if (fcmError.code === 'messaging/registration-token-not-registered') {
                     await User.findByIdAndUpdate(userId, { $unset: { fcmToken: "" } });

@@ -70,8 +70,8 @@ const Home = () => {
         setShowSendToModal(true);
     };
 
-    const handleSendPhotoToFriends = async (selectedFriendIds) => {
-        if (!capturedPhoto || !authToken || selectedFriendIds.length === 0) return;
+    const handleSendPhotoToFriends = async (selectedFriendIds, addToStory) => {
+        if (!capturedPhoto || !authToken || (selectedFriendIds.length === 0 && !addToStory)) return;
 
         setIsUploading(true);
         try {
@@ -82,18 +82,37 @@ const Home = () => {
 
             const imageUrl = uploadRes.data.url;
 
-            await axios.post(`${API_BASE_URL}/api/chat/send-snap`, {
-                participantIds: selectedFriendIds,
-                imageUrl: imageUrl,
-                expiresIn: 10
-            }, { headers: { Authorization: `Bearer ${authToken}` } });
+            const promises = [];
 
-            toast.success(`Snap sent to ${selectedFriendIds.length} friend${selectedFriendIds.length > 1 ? 's' : ''}!`);
+            if (selectedFriendIds.length > 0) {
+                promises.push(axios.post(`${API_BASE_URL}/api/chat/send-snap`, {
+                    participantIds: selectedFriendIds,
+                    imageUrl: imageUrl,
+                    expiresIn: 10
+                }, { headers: { Authorization: `Bearer ${authToken}` } }));
+            }
+
+            if (addToStory) {
+                promises.push(axios.post(`${API_BASE_URL}/api/stories`, {
+                    mediaUrl: imageUrl,
+                    mediaType: 'image',
+                    caption: '',
+                }, { headers: { Authorization: `Bearer ${authToken}` } }));
+            }
+
+            await Promise.all(promises);
+
+            let message = '';
+            if (selectedFriendIds.length > 0 && addToStory) message = `Snap sent to ${selectedFriendIds.length} friend${selectedFriendIds.length > 1 ? 's' : ''} and added to Story!`;
+            else if (addToStory) message = 'Added to Story!';
+            else message = `Snap sent to ${selectedFriendIds.length} friend${selectedFriendIds.length > 1 ? 's' : ''}!`;
+
+            toast.success(message);
             setCapturedPhoto(null);
             setShowSendToModal(false);
         } catch (error) {
             console.error("Upload/Send failed:", error);
-            toast.error("Failed to send Snap. Please try again.");
+            toast.error("Failed to send Snap/Story. Please try again.");
         } finally {
             setIsUploading(false);
         }

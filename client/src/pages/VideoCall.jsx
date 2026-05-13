@@ -15,8 +15,13 @@ const VideoCall = () => {
     const queryParams = new URLSearchParams(location.search);
     const callType = queryParams.get('type') || 'video'; // 'video' or 'audio'
 
+    const [errorMsg, setErrorMsg] = React.useState("");
+
     const myMeeting = async (element) => {
-        if (!userData || !element) return;
+        if (!userData || !element) {
+            if (!userData) setErrorMsg("User data is not loaded yet.");
+            return;
+        }
         
         // Prevent double mounting in React Strict Mode
         if (element.hasAttribute('data-zego-joined')) return;
@@ -27,7 +32,7 @@ const VideoCall = () => {
             const serverSecret = import.meta.env.VITE_ZEGO_SERVER_SECRET || "";
 
             if (!appID || !serverSecret) {
-                console.error("ZegoCloud credentials missing in .env");
+                setErrorMsg("ZegoCloud credentials missing in .env");
                 return;
             }
 
@@ -45,7 +50,7 @@ const VideoCall = () => {
             
             const isVideo = callType === 'video';
 
-            zp.joinRoom({
+            await zp.joinRoom({
                 container: element,
                 scenario: {
                     mode: ZegoUIKitPrebuilt.OneONoneCall,
@@ -66,6 +71,7 @@ const VideoCall = () => {
 
         } catch (error) {
             console.error("Error joining ZegoCloud room:", error);
+            setErrorMsg(`ZegoCloud Error: ${error.message || JSON.stringify(error)}`);
         }
     };
 
@@ -77,6 +83,16 @@ const VideoCall = () => {
                     <ChevronLeft size={28} strokeWidth={2.5} className="-ml-1" />
                 </button>
             </div>
+            
+            {errorMsg && (
+                <div className="absolute inset-0 z-[200] bg-black/90 flex items-center justify-center p-6 text-center">
+                    <div className="bg-red-500/20 border border-red-500 text-red-500 p-4 rounded-xl max-w-md">
+                        <h3 className="font-bold text-lg mb-2">Call Initialization Failed</h3>
+                        <p className="text-sm">{errorMsg}</p>
+                        <button onClick={() => navigate(-1)} className="mt-4 px-4 py-2 bg-red-500 text-white rounded-lg font-bold">Go Back</button>
+                    </div>
+                </div>
+            )}
             
             {/* ZegoCloud Container */}
             <div 

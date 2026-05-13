@@ -64,6 +64,7 @@ const chatRoutes = require('./routes/chat');
 const friendRoutes = require('./routes/friend');
 const mapRoutes = require('./routes/map');
 const notificationRoutes = require('./routes/notification');
+const storyRoutes = require('./routes/story');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/upload', uploadRoutes);
@@ -71,6 +72,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/friends', friendRoutes);
 app.use('/api/map', mapRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/stories', storyRoutes);
 
 const path = require('path');
 

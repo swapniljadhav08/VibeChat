@@ -12,6 +12,7 @@ const SendToModal = ({ onClose, onSend, isUploading }) => {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedFriends, setSelectedFriends] = useState([]);
+    const [addToStory, setAddToStory] = useState(false);
 
     useEffect(() => {
         const fetchFriends = async () => {
@@ -40,11 +41,11 @@ const SendToModal = ({ onClose, onSend, isUploading }) => {
     };
 
     const handleSendClick = () => {
-        if (selectedFriends.length === 0) {
-            toast.error("Please select at least one friend.");
+        if (selectedFriends.length === 0 && !addToStory) {
+            toast.error("Please select at least one friend or My Story.");
             return;
         }
-        onSend(selectedFriends);
+        onSend(selectedFriends, addToStory);
     };
 
     const filteredFriends = (() => {
@@ -116,7 +117,24 @@ const SendToModal = ({ onClose, onSend, isUploading }) => {
                             <p className="text-white/50 font-medium text-sm">Add friends to send them snaps!</p>
                         </div>
                     ) : (
-                        <div className="bg-white/5 backdrop-blur-xl rounded-[24px] shadow-sm border border-white/10 overflow-hidden mx-2 pb-1">
+                        <>
+                            <div className="bg-white/5 backdrop-blur-xl rounded-[24px] shadow-sm border border-white/10 overflow-hidden mx-2 mb-4">
+                                <div 
+                                    onClick={() => setAddToStory(!addToStory)}
+                                    className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition ${addToStory ? 'bg-[#7F5AF0]/20' : 'hover:bg-white/5 active:bg-white/10'}`}
+                                >
+                                    <div className={`w-[46px] h-[46px] rounded-full flex-shrink-0 overflow-hidden border ${addToStory ? 'border-[#00E5FF] shadow-[0_0_10px_#00E5FF]' : 'border-white/10'} bg-surface-800 flex items-center justify-center transition-all`}>
+                                        <div className="text-xl">🌟</div>
+                                    </div>
+                                    <div className="flex-1 min-w-0 pr-2">
+                                        <h3 className="font-bold text-[16px] text-white tracking-tight truncate">My Story</h3>
+                                    </div>
+                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${addToStory ? 'bg-[#00E5FF] border-[#00E5FF] shadow-[0_0_10px_#00E5FF]' : 'border-white/20'}`}>
+                                        {addToStory && <Check size={14} className="text-[#0F0F14]" strokeWidth={3} />}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="bg-white/5 backdrop-blur-xl rounded-[24px] shadow-sm border border-white/10 overflow-hidden mx-2 pb-1">
                             <h3 className="px-4 py-2.5 text-[12px] font-extrabold text-white/40 uppercase tracking-widest bg-white/5 border-b border-white/5">Best Friends</h3>
                             {filteredFriends.map(user => {
                                 const isSelected = selectedFriends.includes(user._id);
@@ -142,12 +160,13 @@ const SendToModal = ({ onClose, onSend, isUploading }) => {
                                 );
                             })}
                         </div>
+                        </>
                     )}
                 </div>
             </div>
 
             {/* Bottom Floating Action Button */}
-            {selectedFriends.length > 0 && (
+            {(selectedFriends.length > 0 || addToStory) && (
                 <div className="absolute bottom-8 left-0 right-0 flex justify-center w-full px-6 z-20 pb-safe slide-in-from-bottom-4 animate-in duration-300">
                     <button
                         onClick={handleSendClick}
